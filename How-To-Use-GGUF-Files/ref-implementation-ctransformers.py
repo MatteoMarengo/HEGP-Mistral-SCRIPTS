@@ -15,8 +15,8 @@
 
 from ctransformers import AutoModelForCausalLM, AutoConfig
 import os
-# model_name= "TheBloke/Mistral-7B-Instruct-v0.1-GGUF"
-# model_path = r"D:/OneDrive/Documents/MVA-ENS-2023-2024/S1/HEGP/HEGP-Mistral-MODELS/GGUF-Mistral7B/mistral-7b-instruct-v0.1.Q5_K_M.gguf"
+#model_name= "TheBloke/Mistral-7B-Instruct-v0.1-GGUF"
+#model_path = r"D:/OneDrive/Documents/MVA-ENS-2023-2024/S1/HEGP/HEGP-Mistral-MODELS/GGUF-Mistral7B/mistral-7b-instruct-v0.1.Q5_K_M.gguf"
 # model_name= "TheBloke/Llama-2-7B-GGUF"
 # Change it to the path of the model
 # model_path = r"D:/OneDrive/Documents/MVA-ENS-2023-2024/S1/HEGP/HEGP-Mistral-MODELS/GGUF-Llama27B/llama-2-7b.Q5_K_M.gguf"
@@ -27,8 +27,8 @@ model_path = r"D:/OneDrive/Documents/MVA-ENS-2023-2024/S1/HEGP/HEGP-Mistral-MODE
 config = AutoConfig.from_pretrained(model_name)
 # config.max_new_tokens = 2048
 config.config.context_length = 4096
-llm = AutoModelForCausalLM.from_pretrained(model_path_or_repo_id=model_path,
-                                            #model_file=model_path,
+llm = AutoModelForCausalLM.from_pretrained(model_name,
+                                            model_file=model_path,
                                             model_type="llama",
                                             temperature=0.7,
                                             gpu_layers=0,
