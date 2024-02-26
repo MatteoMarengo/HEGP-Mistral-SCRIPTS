@@ -442,18 +442,18 @@ dcc.Input(
             ])
         ], className='card border-primary mb-3', style={'max-width': '60rem', 'margin': '3 auto'})
     ], className='summary-container mx-auto', style={'width': '60%'}),
-    html.Br(),
-    html.Div([
-        html.Div([
-            html.Div('BioMistral7B - Ctransformers ', className='card-header'),
-            dcc.Loading(id="loading-summary-BioMistral7B", type="circle", children=[
-                html.Div([
-                    html.H4('Radiation Oncology Patient Symptom Summary using BioMistral7B', className='card-title'),
-                    html.P(id='summary_BioMistral7B', className='summary-container')
-                ], className='card-body')
-            ])
-        ], className='card border-primary mb-3', style={'max-width': '60rem', 'margin': '3 auto'})
-    ], className='summary-container mx-auto', style={'width': '60%'}),
+    # html.Br(),
+    # html.Div([
+    #     html.Div([
+    #         html.Div('BioMistral7B - Ctransformers ', className='card-header'),
+    #         dcc.Loading(id="loading-summary-BioMistral7B", type="circle", children=[
+    #             html.Div([
+    #                 html.H4('Radiation Oncology Patient Symptom Summary using BioMistral7B', className='card-title'),
+    #                 html.P(id='summary_BioMistral7B', className='summary-container')
+    #             ], className='card-body')
+    #         ])
+    #     ], className='card border-primary mb-3', style={'max-width': '60rem', 'margin': '3 auto'})
+    # ], className='summary-container mx-auto', style={'width': '60%'}),
     html.Br(),
     html.Div([
         html.Div([
@@ -512,7 +512,7 @@ dcc.Input(
     [Output('summary_gpt4', 'children'),
      Output('summary_mistral7B_LLM', 'children'),
      Output('summary_mistral7B_GGUF', 'children'),
-     Output('summary_BioMistral7B', 'children'),
+     # Output('summary_BioMistral7B', 'children'),
      Output('summary_llama2_7B_GGUF', 'children'),
      Output('results_table', 'data'),
      Output('timing_table', 'data'),
@@ -544,7 +544,7 @@ dcc.Input(
 def update_table_results(n_clicks, *responses):
     if n_clicks == 0:
         # ADJUST: it depends on the number of models tested
-        return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, [], [], []
+        return dash.no_update, dash.no_update,  dash.no_update, dash.no_update, [], [], []
 
     questions = [
         'Number of Radiation treatments', #A1
@@ -626,7 +626,7 @@ def update_table_results(n_clicks, *responses):
 
      # Generate summaries for models that we wish to test
     summary_gpt4,time_gpt4,score_gpt4 = summarize_table_gpt4(data, language, scores)
-    summary_BioMistral7B, time_BioMistral7B, score_BioMistral7B = summarize_table_BioMistral7B(data, language, scores) 
+    # summary_BioMistral7B, time_BioMistral7B, score_BioMistral7B = summarize_table_BioMistral7B(data, language, scores) 
     summary_mistral7B_GGUF, time_mistral7B_GGUF, score_mistral7B_GGUF = summarize_table_mistral7B_GGUF(data, language, scores)  
     summary_mistral7B_LLM, time_mistral7B_LLM, score_mistral7B_LLM = summarize_table_mistral7B_LLM(data, language, scores)  
     summary_llama2_7B_GGUF, time_llama2_7B_GGUF, score_llama2_7B_GGUF = summarize_table_llama2_7B_GGUF(data, language, scores) 
@@ -638,7 +638,7 @@ def update_table_results(n_clicks, *responses):
         {'model': 'GPT-4', 'time': time_gpt4},
         {'model': 'Mistral7B', 'time': time_mistral7B_LLM},
         {'model': 'Mistral7B-GGUF', 'time': time_mistral7B_GGUF},
-        {'model': 'BioMistral7B', 'time': time_BioMistral7B},
+        #{'model': 'BioMistral7B', 'time': time_BioMistral7B},
         {'model': 'Llama2-7B-GGUF', 'time': time_llama2_7B_GGUF}
     ]
 
@@ -646,11 +646,11 @@ def update_table_results(n_clicks, *responses):
         {'model': 'GPT-4', 'score': score_gpt4},
         {'model': 'Mistral7B', 'score': score_mistral7B_LLM},
         {'model': 'Mistral7B-GGUF', 'score': score_mistral7B_GGUF},
-        {'model': 'BioMistral7B', 'score': score_BioMistral7B},
+        #{'model': 'BioMistral7B', 'score': score_BioMistral7B},
         {'model': 'Llama2-7B-GGUF', 'score': score_llama2_7B_GGUF}
     ]
 
-    return summary_gpt4, summary_mistral7B_LLM, summary_mistral7B_GGUF, summary_BioMistral7B, summary_llama2_7B_GGUF, rdata, timing_data, score_data
+    return summary_gpt4, summary_mistral7B_LLM, summary_mistral7B_GGUF, summary_llama2_7B_GGUF, rdata, timing_data, score_data
 
 def generate_prompt(data, language):
     prompt = ""
@@ -763,22 +763,25 @@ def summarize_table_BioMistral7B(data, language, scores):
 
     start_time = time.time() # Start timing
     
-    model_name= "BioMistral/BioMistral-7B-GGUF"
-    model_path = r"D:/OneDrive/Documents/MVA-ENS-2023-2024/S1/HEGP/HEGP-Mistral-MODELS/GGUF-BioMistral7B/ggml-model-Q5_K_M.gguf"
+    # model_name= "BioMistral/BioMistral-7B-GGUF"
+    # model_path = r"D:/OneDrive/Documents/MVA-ENS-2023-2024/S1/HEGP/HEGP-Mistral-MODELS/GGUF-BioMistral7B/ggml-model-Q5_K_M.gguf"
+    model_name = "MaziyarPanahi/BioMistral-7B-GGUF"
+    model_path = r"D:/OneDrive/Documents/MVA-ENS-2023-2024/S1/HEGP/HEGP-Mistral-MODELS/GGUF-BioMistral7B/BioMistral-7B.Q5_K_M.gguf"
     # Create the llm
     config = AutoConfig.from_pretrained(model_name)
     # config.max_new_tokens = 2048
     config.config.context_length = 4096
-    llm = AutoModelForCausalLM.from_pretrained(model_name,
-                                                model_file=model_path,
+    llm = AutoModelForCausalLM.from_pretrained(model_path_or_repo_id=model_path,
+                                                #model_file=model_path,
                                                 model_type="llama",
-                                                temperature=0.2,
+                                                temperature=0.7,
                                                 gpu_layers=0,
                                                 stream=True,
                                                 threads=int(os.cpu_count()),
-                                                max_new_tokens=200,
+                                                max_new_tokens=100,
                                                 config=config)
     prompt = generate_prompt(data, language)
+    prompt = "How are you ?"
     prompt = f"[INST]{prompt}[/INST]"
     print(f"The prompt for the model BioMistral7B is {prompt}\n")
     # Generate the summary
