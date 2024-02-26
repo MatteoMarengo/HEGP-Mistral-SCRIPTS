@@ -1,0 +1,25 @@
+.env
+test.py
+# Environments
+.venv
+venv/
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs
+*.log
+
+# Local development files
+.idea/
+.vscode/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Temporary files
+*.tmp
+*.swp
+*.swo

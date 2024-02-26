@@ -1,0 +1,6 @@
+gunicorn
+dash
+pandas
+openai==0.28
+python-dotenv
+dash-bootstrap-components
