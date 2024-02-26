@@ -20,6 +20,9 @@ import sys
 from evaluation import compute_metric, scores_properties
 from evaluation import define_keywords, define_scores_dict, answers_to_score, extract_after_number
 from process_QA import prompt_creation, random_prompt_creation, format_answers_randomly
+from ctransformers import AutoModelForCausalLM, AutoConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
 
 
 from dotenv import load_dotenv
@@ -72,6 +75,7 @@ severity_colors = {
 }
 
 #######################################################################################################
+#######################################################################################################
 # Define the layout of the application
 def create_data_table():
     style_data_conditional = []
@@ -112,6 +116,8 @@ def create_data_table():
         style_data_conditional=style_data_conditional
     )
 
+#######################################################################################################
+#######################################################################################################
 # Define a function to create the timing data table
 def create_timing_table():
     return dash_table.DataTable(
@@ -135,6 +141,7 @@ def create_score_table():
 
 current_date = datetime.date.today()
 
+#######################################################################################################
 #######################################################################################################
 app.layout = html.Div([
 dcc.Markdown('# Prostate Radiotherapy Patient Symptom Intake Form', style={'text-align': 'center'}),
@@ -450,6 +457,18 @@ dcc.Input(
     html.Br(),
     html.Div([
         html.Div([
+            html.Div('Llama2_7B - Ctransformers ', className='card-header'),
+            dcc.Loading(id="loading-summary-Llama-7B", type="circle", children=[
+                html.Div([
+                    html.H4('Radiation Oncology Patient Symptom Summary using Llama2_7B', className='card-title'),
+                    html.P(id='summary_llama2_7B_GGUF', className='summary-container')
+                ], className='card-body')
+            ])
+        ], className='card border-primary mb-3', style={'max-width': '60rem', 'margin': '3 auto'})
+    ], className='summary-container mx-auto', style={'width': '60%'}),
+    html.Br(),
+    html.Div([
+        html.Div([
             html.Div('OpenAI', className='card-header'),
             dcc.Loading(id="loading-summary-gpt4", type="circle", children=[
                 html.Div([
@@ -486,12 +505,15 @@ dcc.Input(
     'Created by David J. Wu & Jean-Emmanuel Bibault. Adapted by Jarod Lévy & Matteo Marengo - 2023/2024',
         ], style=style)
 
+#######################################################################################################
+#######################################################################################################
 
 @app.callback(
     [Output('summary_gpt4', 'children'),
      Output('summary_mistral7B_LLM', 'children'),
      Output('summary_mistral7B_GGUF', 'children'),
      Output('summary_BioMistral7B', 'children'),
+     Output('summary_llama2_7B_GGUF', 'children'),
      Output('results_table', 'data'),
      Output('timing_table', 'data'),
      Output('score_table', 'data')],
@@ -518,11 +540,11 @@ dcc.Input(
 )
 
 #######################################################################################################
+#######################################################################################################
 def update_table_results(n_clicks, *responses):
     if n_clicks == 0:
-        # return dash.no_update, dash.no_update, dash.no_update, [], [], []
-        return dash.no_update, dash.no_update, dash.no_update, dash.no_update, [], [], []
-        #return None, []
+        # ADJUST: it depends on the number of models tested
+        return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, [], [], []
 
     questions = [
         'Number of Radiation treatments', #A1
@@ -602,112 +624,106 @@ def update_table_results(n_clicks, *responses):
 
     # prompt = prompt + instructions + example + instruction_language
 
-     # Generate summaries for both models
+     # Generate summaries for models that we wish to test
     summary_gpt4,time_gpt4,score_gpt4 = summarize_table_gpt4(data, language, scores)
-    summary_mistral7B_LLM, time_mistral7B_LLM, score_mistral7B_LLM = summarize_table_mistral7B_LLM(data, language, scores)  # Assume you adapt your summarization function accordingly
-    summary_mistral7B_GGUF, time_mistral7B_GGUF, score_mistral7B_GGUF = summarize_table_mistral7B_GGUF(data, language, scores)  # Assume you adapt your summarization function accordingly
-    summary_BioMistral7B, time_BioMistral7B, score_BioMistral7B = summarize_table_BioMistral7B(data, language, scores)  # Assume you adapt your summarization function accordingly
-    #summary_llama2_13B = summarize_table_llama2_13B(data, language)  # Assume you adapt your summarization function accordingly
+    summary_BioMistral7B, time_BioMistral7B, score_BioMistral7B = summarize_table_BioMistral7B(data, language, scores) 
+    summary_mistral7B_GGUF, time_mistral7B_GGUF, score_mistral7B_GGUF = summarize_table_mistral7B_GGUF(data, language, scores)  
+    summary_mistral7B_LLM, time_mistral7B_LLM, score_mistral7B_LLM = summarize_table_mistral7B_LLM(data, language, scores)  
+    summary_llama2_7B_GGUF, time_llama2_7B_GGUF, score_llama2_7B_GGUF = summarize_table_llama2_7B_GGUF(data, language, scores) 
+
+    #summary_Gemma7B, time_Gemma7B, score_Gemma7B = summarize_table_Gemma7B(data, language, scores) 
+    #summary_llama2_13B, time_llama2_13B, score_llama2_13B = summarize_table_llama2_13B_LLM(data, language, scores) 
 
     timing_data = [
         {'model': 'GPT-4', 'time': time_gpt4},
         {'model': 'Mistral7B', 'time': time_mistral7B_LLM},
         {'model': 'Mistral7B-GGUF', 'time': time_mistral7B_GGUF},
-        {'model': 'BioMistral7B', 'time': time_BioMistral7B}
+        {'model': 'BioMistral7B', 'time': time_BioMistral7B},
+        {'model': 'Llama2-7B-GGUF', 'time': time_llama2_7B_GGUF}
     ]
 
     score_data = [
         {'model': 'GPT-4', 'score': score_gpt4},
         {'model': 'Mistral7B', 'score': score_mistral7B_LLM},
         {'model': 'Mistral7B-GGUF', 'score': score_mistral7B_GGUF},
-        {'model': 'BioMistral7B', 'score': score_BioMistral7B}
+        {'model': 'BioMistral7B', 'score': score_BioMistral7B},
+        {'model': 'Llama2-7B-GGUF', 'score': score_llama2_7B_GGUF}
     ]
 
+    return summary_gpt4, summary_mistral7B_LLM, summary_mistral7B_GGUF, summary_BioMistral7B, summary_llama2_7B_GGUF, rdata, timing_data, score_data
 
-    
-    #return summary_gpt4, summary_mistral7B, summary_mistral7B_GGUF, data, timing_data, score_data
-    return summary_gpt4, summary_mistral7B_LLM, summary_mistral7B_GGUF, summary_BioMistral7B, rdata, timing_data, score_data
+def generate_prompt(data, language):
+    prompt = ""
+    instructions = "You are an experienced radiation oncologist physician. You are provided this list of questions and answers about patient symptoms during their weekly follow-up visit during radiotherapy. Please summarize the following data into two sentences of natural language for your physician colleagues. Indicate in your summary the most important symptoms using exactly the group of words in parenthesis at the end of the question. A “yes” is important. Each time, include the number of radiation treatments and the answer of the last question if answered. Treat the question including “daily activities” separately with a sentence beginning by - In his daily activities - and take only the important symptoms."
+    example = "Example: This patient, after 30 radiation treatments, reports very severe symptoms including fatigue, flatulence and diarrhea with occasional fever as an additional symptom. In his daily activities, very severe interference was noted due to fatigue and abdominal pain."
+    instruction_language = f"Please provide the answer in {language}"
 
+    for row in data:
+        prompt += row['question'] 
+        prompt += row['answer'] 
+    prompt = prompt + instructions + example + instruction_language
+
+    return prompt
 #######################################################################################################
 #################################### LLM-Mistral7B ###################################################
 #######################################################################################################
 def summarize_table_mistral7B_LLM(data, language, scores):
+    print("Summarizing using Mistral7B_LLM\n")
+    print("GGUF file used: mistral-7b-instruct-v0.1.Q4_0.gguf\n")
     start_time = time.time() # Start timing
 
-    messages = [{
-        'role': 'system',
-        'content': f"You are an experienced radiation oncologist physician. You are provided this list of questions and answers about patient symptoms during their weekly follow-up visit during radiotherapy. Please summarize the following data into two sentences of natural language for your physician colleagues. Indicate in your summary the most important symptoms using exactly the group of words in parenthesis at the end of the question. A “yes” is important. Each time, include the number of radiation treatments and the answer of the last question if answered. Treat the question including “daily activities” separately with a sentence beginning by - In his daily activities - and take only the important symptoms. Example: This patient, after 30 radiation treatments, reports very severe symptoms including fatigue, flatulence and diarrhea with occasional fever as an additional symptom. In his daily activities, very severe interference was noted due to fatigue and abdominal pain. Please provide the answer in {language}"
-    }]
-
-    for row in data:
-        messages.append({
-            'role': 'user',
-            'content': f"{row['question']}: {row['answer']}"
-        })
-    
-    messages.append({
-        'role': 'assistant',
-        'content': "Summary:"
-    })
-
-    instructions = "You are an experienced radiation oncologist physician. You are provided this list of questions and answers about patient symptoms during their weekly follow-up visit during radiotherapy. Please summarize the following data into two sentences of natural language for your physician colleagues. Indicate in your summary the most important symptoms using exactly the group of words in parenthesis at the end of the question. A “yes” is important. Each time, include the number of radiation treatments and the answer of the last question if answered. Treat the question including “daily activities” separately with a sentence beginning by - In his daily activities - and take only the important symptoms."
-    example = "Example: This patient, after 30 radiation treatments, reports very severe symptoms including fatigue, flatulence and diarrhea with occasional fever as an additional symptom. In his daily activities, very severe interference was noted due to fatigue and abdominal pain."
-    instruction_language = f"Please provide the answer in {language}"
-    prompt = instructions + example + instruction_language
-    for row in data:
-        prompt += row['question'] + ' ' + row['answer'] + ' '
-    # prompt = prompt + instructions + example + instruction_language
-    print(prompt)
+    prompt = generate_prompt(data, language)
+    print(f"The prompt for the model Mistral7B using LLM Library is {prompt}\n")
        
     command = [
         "llm", "-m", "mistral-7b-instruct-v0", 
-        str(messages)
+        prompt
     ]
    
-
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     stdout, stderr = process.communicate()
-    output = stdout.decode('utf-8')
+
+    try:
+        summary = stdout.decode('utf-8')
+        print("Output:\n", summary)
+    except UnicodeDecodeError:
+        summary = stdout.decode('utf-8', 'backslashreplace')
+        print("Output (with undecodable bytes):\n", summary)
+
+    if stderr:
+        try:
+            error = stderr.decode('utf-8')
+            print("Error:\n", error)
+        except UnicodeDecodeError:
+            error = stderr.decode('utf-8', 'backslashreplace')
+            print("Error (with undecodable bytes):\n", error)
+    else:
+        print("No error detected")
+
     keywords_dict, symptoms, daily_activities = scores_properties()
-    grade = compute_metric(scores, keywords_dict, output, daily_activities, symptoms)
-    summary = output 
+    grade = compute_metric(scores, keywords_dict, summary, daily_activities, symptoms)
     
     end_time = time.time() # End timing
     summary_time = end_time - start_time # Calculate time
+
+    print(f"Summary generated in {summary_time} seconds\n")
+    print(f"The generated summary is {summary}\n")
 
     return summary, summary_time, grade
 
 #######################################################################################################
 #################################### GGUF-Mistral7B ###################################################
 #######################################################################################################
-from ctransformers import AutoModelForCausalLM, AutoConfig
-import os
-
 def summarize_table_mistral7B_GGUF(data, language, scores):
+    print("Summarizing using Mistral7B GGUF\n")
+    print("GGUF file used: mistral-7b-instruct-v0.1.Q5_K_M.gguf\n")
+
     start_time = time.time() # Start timing
-
-    messages = [{
-        'role': 'system',
-        'content': f"You are an experienced radiation oncologist physician. You are provided this list of questions and answers about patient symptoms during their weekly follow-up visit during radiotherapy. Please summarize the following data into two sentences of natural language for your physician colleagues. Indicate in your summary the most important symptoms using exactly the group of words in parenthesis at the end of the question. A “yes” is important. Each time, include the number of radiation treatments and the answer of the last question if answered. Treat the question including “daily activities” separately with a sentence beginning by - In his daily activities - and take only the important symptoms. Example: This patient, after 30 radiation treatments, reports very severe symptoms including fatigue, flatulence and diarrhea with occasional fever as an additional symptom. In his daily activities, very severe interference was noted due to fatigue and abdominal pain. Please provide the answer in {language}"
-    }]
-
-    for row in data:
-        messages.append({
-            'role': 'user',
-            'content': f"{row['question']}: {row['answer']}"
-        })
-    
-    messages.append({
-        'role': 'assistant',
-        'content': "Summary:"
-    })
-
-    print(messages)
 
     model_name= "TheBloke/Mistral-7B-Instruct-v0.1-GGUF"
     # Change it to the path of the model
-    model_path = r"HEGP-Mistral-MODELS/GGUF-Mistral7B/mistral-7b-instruct-v0.1.Q5_K_M.gguf"
+    model_path = r"D:/OneDrive/Documents/MVA-ENS-2023-2024/S1/HEGP/HEGP-Mistral-MODELS/GGUF-Mistral7B/mistral-7b-instruct-v0.1.Q5_K_M.gguf"
 
     # Create the llm
     config = AutoConfig.from_pretrained(model_name)
@@ -722,8 +738,9 @@ def summarize_table_mistral7B_GGUF(data, language, scores):
                                                 threads=int(os.cpu_count()),
                                                 max_new_tokens=200,
                                                 config=config)
-    # text = "Q1. How many radiation treatments have you had? It’s okay if you don’t know. A1. 3 Q2. In the last 7 days, what was the SEVERITY of your FATIGUE, TIREDNESS, OR LACK OF ENERGY at its WORST? A2. Severe Q3. In the last 7 days, how much did FATIGUE, TIREDNESS, OR LACK OF ENERGY INTERFERE with your usual or daily activities? A3. Quite a bit Q4. In the last 7 days, did you have any INCREASED PASSING OF GAS (FLATULENCE)? A4. Yes Q5. In the last 7 days, how OFTEN did you have LOOSE OR WATERY STOOLS (DIARRHEA)? A5. Frequently Q6. In the last 7 days, how OFTEN did you have PAIN IN THE ABDOMEN (BELLY AREA)? A6. Frequently Q7. In the last 7 days, what was the SEVERITY of your PAIN IN THE ABDOMEN (BELLY AREA) at its WORST? A7. Severe Q8. In the last 7 days, how much did PAIN IN THE ABDOMEN (BELLY AREA) INTERFERE with your usual or daily activities? A8. Very much Q9. In the last 7 days, what was the SEVERITY of your PAIN OR BURNING WITH URINATION at its WORST? A9. Moderate Q10. In the last 7 days, how OFTEN did you feel an URGE TO URINATE ALL OF A SUDDEN? A10. Rarely Q11. In the last 7 days, how much did SUDDEN URGES TO URINATE INTERFERE with your usual or daily activities? A11. A little bit Q12. In the last 7 days, were there times when you had to URINATE FREQUENTLY? A12. Frequently Q13. In the last 7 days, how much did FREQUENT URINATION INTERFERE with your usual or daily activities? A13. Quite a bit Q14. In the last 7 days, did you have any URINE COLOR CHANGE? A14. No Q15. In the last 7 days, how OFTEN did you have LOSS OF CONTROL OF URINE (LEAKAGE)? A15. Occasionally Q16. In the last 7 days, how much did LOSS OF CONTROL OF URINE (LEAKAGE) INTERFERE with your usual or daily activities? A16. Somewhat Q17. In the last 7 days, what was the SEVERITY of your SKIN BURNS FROM RADIATION at their WORST? A17. Very Severe Q18. Finally, do you have any other symptoms that you wish to report? A18. Slight nausea and dizziness. You are an experienced radiation oncologist physician. You are provided this list of questions and answers about patient symptoms during their weekly follow-up visit during radiotherapy. Please summarize the following data into two sentences of natural language for your physician colleagues. Please put the most important symptoms first. Provide the summarization in the english language. Example: This patient with 7 radiation treatments is having severe abdominal pain, moderately affecting activities of daily living. Other symptoms include occasional diarrhea, mild rash. "
-    prompt = f"[INST]{str(messages)}[/INST]"
+    prompt = generate_prompt(data, language)
+    prompt = f"[INST]{prompt}[/INST]"
+    print(f"The prompt for the model Mistral7B using GGUF is {prompt}\n")
 
     # Generate the summary
     summary = llm(prompt=prompt)
@@ -732,6 +749,8 @@ def summarize_table_mistral7B_GGUF(data, language, scores):
 
     end_time = time.time() # End timing
     summary_time = end_time - start_time # Calculate time
+    print(f"The generated summary is {summary}\n")
+    print(f"Summary generated in {summary_time} seconds\n")
 
     return summary, summary_time, grade
 
@@ -739,27 +758,53 @@ def summarize_table_mistral7B_GGUF(data, language, scores):
 #################################### BioMistral7B #####################################################
 #######################################################################################################
 def summarize_table_BioMistral7B(data, language, scores):
+    print("Summarizing using BioMistral7B\n")
+    print("GGUF file used: BioMistral-7B.Q5_K_M.gguf\n")
+
     start_time = time.time() # Start timing
-
-    messages = [{
-        'role': 'system',
-        'content': f"You are an experienced radiation oncologist physician. You are provided this list of questions and answers about patient symptoms during their weekly follow-up visit during radiotherapy. Please summarize the following data into two sentences of natural language for your physician colleagues. Indicate in your summary the most important symptoms using exactly the group of words in parenthesis at the end of the question. A “yes” is important. Each time, include the number of radiation treatments and the answer of the last question if answered. Treat the question including “daily activities” separately with a sentence beginning by - In his daily activities - and take only the important symptoms. Example: This patient, after 30 radiation treatments, reports very severe symptoms including fatigue, flatulence and diarrhea with occasional fever as an additional symptom. In his daily activities, very severe interference was noted due to fatigue and abdominal pain. Please provide the answer in {language}"
-    }]
-
-    for row in data:
-        messages.append({
-            'role': 'user',
-            'content': f"{row['question']}: {row['answer']}"
-        })
     
-    messages.append({
-        'role': 'assistant',
-        'content': "Summary:"
-    })
-
-    print(messages)
     model_name= "BioMistral/BioMistral-7B-GGUF"
-    model_path = r"HEGP-Mistral-MODELS/GGUF-BioMistral7B/BioMistral-7B.Q5_K_M.gguf"
+    model_path = r"D:/OneDrive/Documents/MVA-ENS-2023-2024/S1/HEGP/HEGP-Mistral-MODELS/GGUF-BioMistral7B/ggml-model-Q5_K_M.gguf"
+    # Create the llm
+    config = AutoConfig.from_pretrained(model_name)
+    # config.max_new_tokens = 2048
+    config.config.context_length = 4096
+    llm = AutoModelForCausalLM.from_pretrained(model_name,
+                                                model_file=model_path,
+                                                model_type="llama",
+                                                temperature=0.2,
+                                                gpu_layers=0,
+                                                stream=True,
+                                                threads=int(os.cpu_count()),
+                                                max_new_tokens=200,
+                                                config=config)
+    prompt = generate_prompt(data, language)
+    prompt = f"[INST]{prompt}[/INST]"
+    print(f"The prompt for the model BioMistral7B is {prompt}\n")
+    # Generate the summary
+    summary = llm(prompt=prompt)
+    keywords_dict, symptoms, daily_activities = scores_properties()
+    grade = compute_metric(scores, keywords_dict, summary, daily_activities, symptoms)
+
+    end_time = time.time() # End timing
+    summary_time = end_time - start_time # Calculate time
+
+    print(f"Summary generated in {summary_time} seconds\n")
+    print(f"The generated summary is {summary}\n")
+
+    return summary, summary_time, grade
+
+#######################################################################################################
+#################################### Gemma7B #####################################################
+#######################################################################################################
+def summarize_table_Gemma7B(data, language, scores):
+    print("Summarizing using Gemma7B\n")
+    print("GGUF file used: \n")
+
+    start_time = time.time() # Start timing
+    
+    model_name= "BioMistral/BioMistral-7B-GGUF"
+    model_path = r"D:/OneDrive/Documents/MVA-ENS-2023-2024/S1/HEGP/HEGP-Mistral-MODELS/GGUF-BioMistral7B/BioMistral-7B.Q5_K_M.gguf"
     # Create the llm
     config = AutoConfig.from_pretrained(model_name)
     # config.max_new_tokens = 2048
@@ -773,9 +818,9 @@ def summarize_table_BioMistral7B(data, language, scores):
                                                 threads=int(os.cpu_count()),
                                                 max_new_tokens=200,
                                                 config=config)
-    # text = "Q1. How many radiation treatments have you had? It’s okay if you don’t know. A1. 3 Q2. In the last 7 days, what was the SEVERITY of your FATIGUE, TIREDNESS, OR LACK OF ENERGY at its WORST? A2. Severe Q3. In the last 7 days, how much did FATIGUE, TIREDNESS, OR LACK OF ENERGY INTERFERE with your usual or daily activities? A3. Quite a bit Q4. In the last 7 days, did you have any INCREASED PASSING OF GAS (FLATULENCE)? A4. Yes Q5. In the last 7 days, how OFTEN did you have LOOSE OR WATERY STOOLS (DIARRHEA)? A5. Frequently Q6. In the last 7 days, how OFTEN did you have PAIN IN THE ABDOMEN (BELLY AREA)? A6. Frequently Q7. In the last 7 days, what was the SEVERITY of your PAIN IN THE ABDOMEN (BELLY AREA) at its WORST? A7. Severe Q8. In the last 7 days, how much did PAIN IN THE ABDOMEN (BELLY AREA) INTERFERE with your usual or daily activities? A8. Very much Q9. In the last 7 days, what was the SEVERITY of your PAIN OR BURNING WITH URINATION at its WORST? A9. Moderate Q10. In the last 7 days, how OFTEN did you feel an URGE TO URINATE ALL OF A SUDDEN? A10. Rarely Q11. In the last 7 days, how much did SUDDEN URGES TO URINATE INTERFERE with your usual or daily activities? A11. A little bit Q12. In the last 7 days, were there times when you had to URINATE FREQUENTLY? A12. Frequently Q13. In the last 7 days, how much did FREQUENT URINATION INTERFERE with your usual or daily activities? A13. Quite a bit Q14. In the last 7 days, did you have any URINE COLOR CHANGE? A14. No Q15. In the last 7 days, how OFTEN did you have LOSS OF CONTROL OF URINE (LEAKAGE)? A15. Occasionally Q16. In the last 7 days, how much did LOSS OF CONTROL OF URINE (LEAKAGE) INTERFERE with your usual or daily activities? A16. Somewhat Q17. In the last 7 days, what was the SEVERITY of your SKIN BURNS FROM RADIATION at their WORST? A17. Very Severe Q18. Finally, do you have any other symptoms that you wish to report? A18. Slight nausea and dizziness. You are an experienced radiation oncologist physician. You are provided this list of questions and answers about patient symptoms during their weekly follow-up visit during radiotherapy. Please summarize the following data into two sentences of natural language for your physician colleagues. Please put the most important symptoms first. Provide the summarization in the english language. Example: This patient with 7 radiation treatments is having severe abdominal pain, moderately affecting activities of daily living. Other symptoms include occasional diarrhea, mild rash. "
-    prompt = f"[INST]{str(messages)}[/INST]"
-
+    prompt = generate_prompt(data, language)
+    prompt = f"[INST]{prompt}[/INST]"
+    print(f"The prompt for the model BioMistral7B is {prompt}\n")
     # Generate the summary
     summary = llm(prompt=prompt)
     keywords_dict, symptoms, daily_activities = scores_properties()
@@ -784,12 +829,17 @@ def summarize_table_BioMistral7B(data, language, scores):
     end_time = time.time() # End timing
     summary_time = end_time - start_time # Calculate time
 
+    print(f"Summary generated in {summary_time} seconds\n")
+    print(f"The generated summary is {summary}\n")
+
     return summary, summary_time, grade
 
 #######################################################################################################
 ##################################### GPT-4 ###########################################################
 #######################################################################################################
 def summarize_table_gpt4(data, language, scores):
+    print("Summarizing using GPT4\n")
+
     start_time = time.time() # Start timing
     messages = [{
         'role': 'system',
@@ -807,8 +857,8 @@ def summarize_table_gpt4(data, language, scores):
         'content': "Summary:"
     })
 
-    print(messages)
-    
+    print(f"The prompt for the model GPT-4 is {messages}\n")
+
     response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=messages,
@@ -823,41 +873,109 @@ def summarize_table_gpt4(data, language, scores):
     
     end_time = time.time() # End timing
     summary_time = end_time - start_time # Calculate time
+
+    print(f"Summary generated in {summary_time} seconds\n")
+    print(f"The generated summary is {summary}\n")
     
     return summary,summary_time,grade
 
-# #######################################################################################################
+#######################################################################################################
+##################################### Llama2-13B ######################################################
+#######################################################################################################
 # WARNING: 6.86 GB download, needs 16GB RAM to run
-def summarize_table_llama2_13B(data, language):
-    messages = [{
-        'role': 'system',
-        'content': f"You are an experienced radiation oncologist physician. You are provided this table of patient symptoms during their weekly follow-up visit during radiotherapy. Please summarize the following data into two sentences of natural language for your physician colleagues. Please put most important symptoms first. Provide the summarization in the {language} language. English Example - This patient with 7 radiation treatments is having severe abdominal pain, moderately affecting activities of daily living. Other symptoms include occasional diarrhea, mild rash.:"
-    }]
-    
-    for row in data:
-        messages.append({
-            'role': 'user',
-            'content': f"{row['question']}: {row['answer']}"
-        })
-    
-    messages.append({
-        'role': 'assistant',
-        'content': "Summary:"
-    })
-   
+# Use Llama2-13B (13Gb memory - 16 Gb RAM - 8 Gb VRAM)
+# LLM Library - GPT4All
+def summarize_table_llama2_13B_LLM(data, language, scores):
+    print("Summarizing using Llama2-13B\n")
+    print("GGUF file used: nous-hermes-llama2-13b.Q4_0.gguf\n")
+
+    start_time = time.time() # Start timing
+    prompt = generate_prompt(data, language)
+    print(f"The prompt for the model Llama2-13B is {prompt}\n")
+       
     command = [
         "llm", "-m", "nous-hermes-llama2-13b", 
-        str(messages)
+        prompt
     ]
 
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     stdout, stderr = process.communicate()
-    output = stdout.decode('utf-8')
-    # summary = response.choices[0].message.content.strip()
-    summary = output 
-    return summary
 
+    try:
+        summary = stdout.decode('utf-8')
+        print("Output:\n", summary)
+    except UnicodeDecodeError:
+        summary = stdout.decode('utf-8', 'backslashreplace')
+        print("Output (with undecodable bytes):\n", summary)
+
+    if stderr:
+        try:
+            error = stderr.decode('utf-8')
+            print("Error:\n", error)
+        except UnicodeDecodeError:
+            error = stderr.decode('utf-8', 'backslashreplace')
+            print("Error (with undecodable bytes):\n", error)
+    else:
+        print("No error detected")
+
+    keywords_dict, symptoms, daily_activities = scores_properties()
+    grade = compute_metric(scores, keywords_dict, summary, daily_activities, symptoms)
+
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    end_time = time.time() # End timing
+    summary_time = end_time - start_time # Calculate time
+
+    print(f"Summary generated in {summary_time} seconds\n")
+    print(f"The generated summary is {summary}\n")
+
+    return summary, summary_time, grade
+
+#######################################################################################################
+##################################### Llama2-7B ######################################################
+#######################################################################################################
+def summarize_table_llama2_7B_GGUF(data, language, scores):
+    print("Summarizing using Llama2_7B GGUF\n")
+    print("GGUF file used: llama-2-7B.Q5_K_M.gguf\n")
+
+    start_time = time.time() # Start timing
+
+    model_name= "TheBloke/Llama-2-7B-GGUF"
+    # Change it to the path of the model
+    model_path = r"D:/OneDrive/Documents/MVA-ENS-2023-2024/S1/HEGP/HEGP-Mistral-MODELS/GGUF-Llama27B/llama-2-7b.Q5_K_M.gguf"
+
+    # Create the llm
+    config = AutoConfig.from_pretrained(model_name)
+    # config.max_new_tokens = 2048
+    config.config.context_length = 4096
+    llm = AutoModelForCausalLM.from_pretrained(model_name,
+                                                model_file=model_path,
+                                                model_type="llama",
+                                                temperature=0.2,
+                                                gpu_layers=0,
+                                                stream=True,
+                                                threads=int(os.cpu_count()),
+                                                max_new_tokens=200,
+                                                config=config)
+    prompt = generate_prompt(data, language)
+    prompt = f"[INST]{prompt}[/INST]"
+    print(f"The prompt for the model Llama2_7B using GGUF is {prompt}\n")
+
+    # Generate the summary
+    summary = llm(prompt=prompt)
+    keywords_dict, symptoms, daily_activities = scores_properties()
+    grade = compute_metric(scores, keywords_dict, summary, daily_activities, symptoms)
+
+    end_time = time.time() # End timing
+    summary_time = end_time - start_time # Calculate time
+    print(f"The generated summary is {summary}\n")
+    print(f"Summary generated in {summary_time} seconds\n")
+
+    return summary, summary_time, grade
+
+#######################################################################################################
+##################################### RAW Mistral7B Instruct ##########################################
 #######################################################################################################
 # Use Raw Mistral7B Instruct (14Gb memory - 16 Gb RAM - 8 Gb VRAM)
 def summarize_table_RAWMistral7B(data, language, scores):
@@ -878,7 +996,6 @@ def summarize_table_RAWMistral7B(data, language, scores):
         'content': "Summary:"
     })
 
-    from transformers import AutoModelForCausalLM, AutoTokenizer
 
     local_model_directory = "D:/OneDrive/Documents/MVA-ENS-2023-2024/S1/HEGP/HEGP-Mistral-SCRIPTS/mistral-7b-instruct-v0.1.Q2_K.gguf"
 
@@ -905,8 +1022,6 @@ def summarize_table_RAWMistral7B(data, language, scores):
     summary = tokenizer.batch_decode(generated_ids)[0]
     
     return summary
-
-
 
 #######################################################################################################
 if __name__ == '__main__':

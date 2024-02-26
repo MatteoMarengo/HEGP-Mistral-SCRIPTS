@@ -68,28 +68,30 @@ def main(prompt):
 #############################################################################################
 # Run the main function
 if __name__ == "__main__":
-    num_generated_prompts = 1
-    for i in range(num_generated_prompts):
-        prompt,csv_file_path, excel_file_path = random_prompt_creation_with_csv(num_generated_prompts)
-        main(prompt)
+    prompt = random_prompt_creation()
+    main(prompt)
+    # num_generated_prompts = 10
+    # for i in range(num_generated_prompts):
+    #     prompt,csv_file_path, excel_file_path = random_prompt_creation_with_csv(num_generated_prompts)
+    #     main(prompt)
 
-        with open(csv_file_path, "a", newline="") as file:
-            writer = csv.writer(file)
+    #     with open(csv_file_path, "a", newline="") as file:
+    #         writer = csv.writer(file)
 
-            # Write the output list to the CSV file
-            writer.writerow(['Generated Summary'] + output_list)
+    #         # Write the output list to the CSV file
+    #         writer.writerow(['Generated Summary'] + output_list)
 
-            # Write the elapsed time list to the CSV file
-            writer.writerow(['Elapsed Time'] + elapsed_time_list)
+    #         # Write the elapsed time list to the CSV file
+    #         writer.writerow(['Elapsed Time'] + elapsed_time_list)
 
-        # Specify the path to your CSV file
-        csv_file = 'HEGP-Mistral-SCRIPTS\generated_data\questions_and_answers.csv'
+    #     # Specify the path to your CSV file
+    #     csv_file = 'HEGP-Mistral-SCRIPTS\generated_data\questions_and_answers.csv'
 
-        # Read the CSV file into a pandas DataFrame
-        df = pd.read_csv(csv_file_path)
+    #     # Read the CSV file into a pandas DataFrame
+    #     df = pd.read_csv(csv_file_path)
 
-        # Write the entire DataFrame to the Excel file
-        df.to_excel(excel_file_path, index=False)
+    #     # Write the entire DataFrame to the Excel file
+    #     df.to_excel(excel_file_path, index=False)
 
         
 
