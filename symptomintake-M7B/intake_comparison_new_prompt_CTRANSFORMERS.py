@@ -987,7 +987,6 @@ def summarize_table_llama2_7B_GGUF(data, language, scores):
 #######################################################################################################
 # Use Raw Mistral7B Instruct (14Gb memory - 16 Gb RAM - 8 Gb VRAM)
 
-
 def summarize_table_RAWMistral7B(data, language, scores):
     from transformers import AutoModelForCausalLM, AutoTokenizer
     start_time = time.time() # Start timing
@@ -1006,7 +1005,6 @@ def summarize_table_RAWMistral7B(data, language, scores):
         'role': 'assistant',
         'content': "Summary:"
     })
-
 
     local_model_directory = "D:/OneDrive/Documents/MVA-ENS-2023-2024/S1/HEGP/HEGP-Mistral-SCRIPTS/mistral-7b-instruct-v0.1.Q2_K.gguf"
 
