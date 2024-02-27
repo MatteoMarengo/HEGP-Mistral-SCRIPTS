@@ -625,8 +625,8 @@ def update_table_results(n_clicks, *responses):
 
      # Generate summaries for models that we wish to test
     summary_gpt4,time_gpt4,score_gpt4 = summarize_table_gpt4(data, language, scores)
-    summary_BioMistral7B, time_BioMistral7B, score_BioMistral7B = summarize_table_BioMistral7B(data, language, scores) 
     summary_mistral7B_GGUF, time_mistral7B_GGUF, score_mistral7B_GGUF = summarize_table_mistral7B_GGUF(data, language, scores)  
+    summary_BioMistral7B, time_BioMistral7B, score_BioMistral7B = summarize_table_BioMistral7B(data, language, scores) 
     summary_mistral7B_LLM, time_mistral7B_LLM, score_mistral7B_LLM = summarize_table_mistral7B_LLM(data, language, scores)  
     summary_llama2_7B_GGUF, time_llama2_7B_GGUF, score_llama2_7B_GGUF = summarize_table_llama2_7B_GGUF(data, language, scores) 
 
@@ -721,23 +721,24 @@ def summarize_table_mistral7B_GGUF(data, language, scores):
 
     start_time = time.time() # Start timing
 
-    model_name= "TheBloke/Mistral-7B-Instruct-v0.1-GGUF"
+    #model_name= "TheBloke/Mistral-7B-Instruct-v0.1-GGUF"
     # Change it to the path of the model
-    model_path = r"D:/OneDrive/Documents/MVA-ENS-2023-2024/S1/HEGP/HEGP-Mistral-MODELS/GGUF-Mistral7B/mistral-7b-instruct-v0.1.Q5_K_M.gguf"
+    model_path = r"D:/OneDrive/Documents/MVA-ENS-2023-2024/S1/HEGP/HEGP-Mistral-MODELS/GGUF-Mistral7B"
 
     # Create the llm
-    config = AutoConfig.from_pretrained(model_name)
+    #config = AutoConfig.from_pretrained(model_name)
     # config.max_new_tokens = 2048
-    config.config.context_length = 4096
-    llm = AutoModelForCausalLM.from_pretrained(model_name,
-                                                model_file=model_path,
+    #config.config.context_length = 4096
+
+    llm = AutoModelForCausalLM.from_pretrained(model_path,
+                                                model_file="mistral-7b-instruct-v0.1.Q5_K_M.gguf",
                                                 model_type="mistral",
                                                 temperature=0.2,
                                                 gpu_layers=0,
-                                                stream=True,
+                                                local_files_only=True,
+                                                context_length=1500,
                                                 threads=int(os.cpu_count()),
-                                                max_new_tokens=200,
-                                                config=config)
+                                                max_new_tokens=200)
     prompt = generate_prompt(data, language)
     prompt = f"[INST]{prompt}[/INST]"
     print(f"The prompt for the model Mistral7B using GGUF is {prompt}\n")
